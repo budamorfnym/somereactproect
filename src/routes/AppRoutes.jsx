@@ -28,8 +28,20 @@ import AdminPanel from '../components/admin/AdminPanel';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
 
 const AppRoutes = ({ companyInfo }) => {
-  const { isAuthenticated, currentUser, loading } = useAuth();
-
+    const { isAuthenticated, currentUser, loading } = useAuth();
+    const [successMessage, setSuccessMessage] = useState('');
+    const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  
+    // Функция для показа сообщения об успехе
+    const showSuccess = (message) => {
+      setSuccessMessage(message);
+      setShowSuccessMessage(true);
+      // Автоматически скрываем сообщение через 3 секунды
+      setTimeout(() => {
+        setShowSuccessMessage(false);
+      }, 3000);
+    };
+    
   if (loading) {
     return null;
   }
@@ -37,12 +49,26 @@ const AppRoutes = ({ companyInfo }) => {
   return (
     <Routes>
       {/* Public routes */}
+      
       <Route path="/" element={<Layout companyInfo={companyInfo}><HomePage /></Layout>} />
       <Route path="/login" element={<Layout companyInfo={companyInfo}><LoginPage /></Layout>} />
       <Route path="/register" element={<Layout companyInfo={companyInfo}><RegisterPage /></Layout>} />
       <Route path="/services" element={<Layout companyInfo={companyInfo}><ServicesPage /></Layout>} />
       <Route path="/gallery" element={<Layout companyInfo={companyInfo}><GalleryPage /></Layout>} />
       <Route path="/contact" element={<Layout companyInfo={companyInfo}><ContactPage /></Layout>} />
+
+      <Route path="/" element={
+        <Layout 
+          companyInfo={companyInfo} 
+          user={currentUser}
+          successMessage={successMessage}
+          showSuccessMessage={showSuccessMessage}
+          setShowSuccessMessage={setShowSuccessMessage}
+          activeTab="home"
+        >
+          <HomePage />
+        </Layout>
+      } />
       
       {/* Protected routes for all authenticated users */}
       <Route path="/booking" element={

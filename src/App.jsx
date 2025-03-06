@@ -1,3 +1,4 @@
+// src/App.jsx (обновленный вариант с CarsProvider)
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import AppRoutes from './routes/AppRoutes';
@@ -5,9 +6,11 @@ import { AuthProvider } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { ServicesProvider } from './contexts/ServicesContext';
 import { BookingProvider } from './contexts/BookingContext';
+import { CarsProvider } from './contexts/CarsContext';  // Добавлен импорт
 import Notification from './components/common/Notification';
 import LoadingSpinner from './components/common/LoadingSpinner';
 import { getCompanyInfo } from './services/companyService';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -35,18 +38,22 @@ function App() {
   }
 
   return (
-    <Router>
-      <AuthProvider>
-        <NotificationProvider>
-          <ServicesProvider>
-            <BookingProvider>
-              <Notification />
-              <AppRoutes companyInfo={companyInfo} />
-            </BookingProvider>
-          </ServicesProvider>
-        </NotificationProvider>
-      </AuthProvider>
-    </Router>
+    <ErrorBoundary>
+        <Router>
+            <AuthProvider>
+                <NotificationProvider>
+                <ServicesProvider>
+                    <CarsProvider>  {/* Добавлен CarsProvider */}
+                    <BookingProvider>
+                        <Notification />
+                        <AppRoutes companyInfo={companyInfo} />
+                    </BookingProvider>
+                    </CarsProvider>
+                </ServicesProvider>
+                </NotificationProvider>
+            </AuthProvider>
+        </Router>
+    </ErrorBoundary>        
   );
 }
 

@@ -1,17 +1,10 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Home, Tool, Car, Award, Phone } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
 
-const MobileNavigation = () => {
-  const location = useLocation();
-  const path = location.pathname;
-  
-  // Определение активной вкладки на основе текущего пути
-  const isActive = (route) => {
-    if (route === '/' && path === '/') return true;
-    if (route !== '/' && path.startsWith(route)) return true;
-    return false;
-  };
+const MobileNavigation = ({ activeTab }) => {
+  const { isAuthenticated } = useAuth();
   
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 bg-black border-t border-gray-800 z-30">
@@ -19,7 +12,7 @@ const MobileNavigation = () => {
         <Link
           to="/"
           className={`flex flex-col items-center justify-center px-2 ${
-            isActive('/') ? 'text-red-600' : 'text-gray-400'
+            activeTab === 'home' ? 'text-red-600' : 'text-gray-400'
           }`}
         >
           <Home size={24} />
@@ -29,7 +22,7 @@ const MobileNavigation = () => {
         <Link
           to="/services"
           className={`flex flex-col items-center justify-center px-2 ${
-            isActive('/services') ? 'text-red-600' : 'text-gray-400'
+            activeTab === 'services' ? 'text-red-600' : 'text-gray-400'
           }`}
         >
           <Tool size={24} />
@@ -37,9 +30,9 @@ const MobileNavigation = () => {
         </Link>
         
         <Link
-          to="/cars"
+          to={isAuthenticated ? "/cars" : "/login"}
           className={`flex flex-col items-center justify-center px-2 ${
-            isActive('/cars') ? 'text-red-600' : 'text-gray-400'
+            activeTab === 'cars' ? 'text-red-600' : 'text-gray-400'
           }`}
         >
           <Car size={24} />
@@ -47,9 +40,9 @@ const MobileNavigation = () => {
         </Link>
         
         <Link
-          to="/loyalty"
+          to={isAuthenticated ? "/loyalty" : "/login"}
           className={`flex flex-col items-center justify-center px-2 ${
-            isActive('/loyalty') ? 'text-red-600' : 'text-gray-400'
+            activeTab === 'loyalty' ? 'text-red-600' : 'text-gray-400'
           }`}
         >
           <Award size={24} />
@@ -59,7 +52,7 @@ const MobileNavigation = () => {
         <Link
           to="/contact"
           className={`flex flex-col items-center justify-center px-2 ${
-            isActive('/contact') ? 'text-red-600' : 'text-gray-400'
+            activeTab === 'contact' ? 'text-red-600' : 'text-gray-400'
           }`}
         >
           <Phone size={24} />
