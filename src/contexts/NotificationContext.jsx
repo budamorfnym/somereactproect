@@ -1,12 +1,12 @@
-import React, { createContext, useState } from 'react';
+import React, { createContext, useState, useCallback } from 'react';
 
 export const NotificationContext = createContext();
 
 export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
 
-  // Добавление уведомления
-  const addNotification = (notification) => {
+  // Add notification
+  const addNotification = useCallback((notification) => {
     const id = Math.random().toString(36).substr(2, 9);
     const newNotification = {
       id,
@@ -16,52 +16,61 @@ export const NotificationProvider = ({ children }) => {
     
     setNotifications(current => [newNotification, ...current]);
     
-    // Автоматическое удаление уведомления через timeout
+    // Auto-remove notification if duration is set
     if (notification.duration !== 0) {
       setTimeout(() => {
         removeNotification(id);
-      }, notification.duration || 3000);
+      }, notification.duration || 5000);
     }
     
     return id;
-  };
+  }, []);
 
-  // Удаление уведомления
-  const removeNotification = (id) => {
+  // Remove notification
+  const removeNotification = useCallback((id) => {
     setNotifications(current => current.filter(n => n.id !== id));
-  };
+  }, []);
 
-  // Очистка всех уведомлений
-  const clearNotifications = () => {
+  // Clear all notifications
+  const clearNotifications = useCallback(() => {
     setNotifications([]);
-  };
+  }, []);
 
-  // Добавление успешного уведомления
-  const success = (message, duration = 3000) => {
+  // Success notification
+  const success = useCallback((message, duration = 5000) => {
     return addNotification({
       type: 'success',
       message,
       duration
     });
-  };
+  }, [addNotification]);
 
-  // Добавление уведомления об ошибке
-  const error = (message, duration = 5000) => {
+  // Error notification
+  const error = useCallback((message, duration = 5000) => {
     return addNotification({
       type: 'error',
       message,
       duration
     });
-  };
+  }, [addNotification]);
 
-  // Добавление информационного уведомления
-  const info = (message, duration = 3000) => {
+  // Info notification
+  const info = useCallback((message, duration = 5000) => {
     return addNotification({
       type: 'info',
       message,
       duration
     });
-  };
+  }, [addNotification]);
+
+  // Warning notification
+  const warning = useCallback((message, duration = 5000) => {
+    return addNotification({
+      type: 'warning',
+      message,
+      duration
+    });
+  }, [addNotification]);
 
   const value = {
     notifications,
@@ -70,7 +79,8 @@ export const NotificationProvider = ({ children }) => {
     clearNotifications,
     success,
     error,
-    info
+    info,
+    warning
   };
 
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;

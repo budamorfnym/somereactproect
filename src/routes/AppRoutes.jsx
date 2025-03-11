@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { LoyaltyProvider } from '../contexts/LoyaltyContext';
 
 // Layout
 import Layout from '../components/layout/Layout';
@@ -10,6 +9,8 @@ import Layout from '../components/layout/Layout';
 import HomePage from '../pages/HomePage';
 import LoginPage from '../pages/LoginPage';
 import RegisterPage from '../pages/RegisterPage';
+import ForgotPasswordPage from '../pages/ForgotPasswordPage';
+import ResetPasswordPage from '../pages/ResetPasswordPage';
 import ServicesPage from '../pages/ServicesPage';
 import ContactPage from '../pages/ContactPage';
 import GalleryPage from '../pages/GallaryPage';
@@ -78,6 +79,24 @@ const AppRoutes = ({ companyInfo }) => {
           activeTab="register"
         >
           <RegisterPage />
+        </Layout>
+      } />
+
+      <Route path="/forgot-password" element={
+        <Layout 
+          companyInfo={companyInfo}
+          activeTab="login"
+        >
+          <ForgotPasswordPage />
+        </Layout>
+      } />
+
+      <Route path="/reset-password/:token" element={
+        <Layout 
+          companyInfo={companyInfo}
+          activeTab="login"
+        >
+          <ResetPasswordPage />
         </Layout>
       } />
 

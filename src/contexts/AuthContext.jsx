@@ -1,4 +1,3 @@
-// src/contexts/AuthContext.jsx
 import React, { createContext, useState, useEffect } from 'react';
 import { authService } from '../services/authService';
 import { setToken, getToken, setUser, getUser, clearAuth } from '../utils/tokenStorage';
@@ -16,20 +15,44 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const validateAuth = async () => {
       const token = getToken();
+      const refreshTokenValue = localStorage.getItem('refresh_token');
+      
       if (token) {
         try {
           const response = await authService.validateToken();
+          
           if (!response.valid) {
-            clearAuth();
-            setIsAuthenticated(false);
-            setCurrentUser(null);
+            // Token is invalid, try to refresh
+            if (refreshTokenValue) {
+              try {
+                const refreshResponse = await authService.refreshToken();
+                setToken(refreshResponse.token);
+                if (refreshResponse.refreshToken) {
+                  localStorage.setItem('refresh_token', refreshResponse.refreshToken);
+                }
+                // Token refreshed successfully
+                return;
+              } catch (refreshErr) {
+                // If refresh fails, clean up and logout
+                clearAuth();
+                setIsAuthenticated(false);
+                setCurrentUser(null);
+              }
+            } else {
+              // No refresh token, clean up
+              clearAuth();
+              setIsAuthenticated(false);
+              setCurrentUser(null);
+            }
           }
         } catch (err) {
+          // Error validating token, clean up
           clearAuth();
           setIsAuthenticated(false);
           setCurrentUser(null);
         }
       }
+      
       setLoading(false);
     };
 
@@ -41,6 +64,12 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authService.login(credentials);
       setToken(response.token);
+      
+      // Store refresh token if available
+      if (response.refreshToken) {
+        localStorage.setItem('refresh_token', response.refreshToken);
+      }
+      
       setUser(response.user);
       setCurrentUser(response.user);
       setIsAuthenticated(true);
@@ -55,6 +84,12 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authService.register(userData);
       setToken(response.token);
+      
+      // Store refresh token if available
+      if (response.refreshToken) {
+        localStorage.setItem('refresh_token', response.refreshToken);
+      }
+      
       setUser(response.user);
       setCurrentUser(response.user);
       setIsAuthenticated(true);
@@ -67,6 +102,7 @@ export const AuthProvider = ({ children }) => {
   // Функция выхода
   const logout = () => {
     clearAuth();
+    localStorage.removeItem('refresh_token');
     setCurrentUser(null);
     setIsAuthenticated(false);
   };
@@ -80,6 +116,26 @@ export const AuthProvider = ({ children }) => {
       return updatedUser;
     } catch (err) {
       error('Не удалось обновить профиль');
+      throw err;
+    }
+  };
+
+  // Запрос на сброс пароля
+  const forgotPassword = async (data) => {
+    try {
+      return await authService.forgotPassword(data);
+    } catch (err) {
+      error('Не удалось отправить запрос на сброс пароля');
+      throw err;
+    }
+  };
+
+  // Сброс пароля
+  const resetPassword = async (data) => {
+    try {
+      return await authService.resetPassword(data);
+    } catch (err) {
+      error('Не удалось сбросить пароль');
       throw err;
     }
   };
@@ -102,7 +158,9 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateProfile,
-    changePassword
+    changePassword,
+    forgotPassword,
+    resetPassword
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

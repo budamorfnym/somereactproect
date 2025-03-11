@@ -4,6 +4,10 @@ import { useNotification } from '../hooks/useNotification';
 
 export const BookingContext = createContext();
 
+// Constants for retry mechanism
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // ms
+
 export const BookingProvider = ({ children }) => {
   const [bookings, setBookings] = useState([]);
   const [availableSlots, setAvailableSlots] = useState([]);
@@ -11,11 +15,36 @@ export const BookingProvider = ({ children }) => {
   
   const { success, error } = useNotification();
   
+  // Retry mechanism for API calls
+  const apiCallWithRetry = async (apiCall, ...args) => {
+    let lastError;
+    
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        return await apiCall(...args);
+      } catch (err) {
+        lastError = err;
+        
+        // Don't retry for client errors (4xx)
+        if (err.response && err.response.status >= 400 && err.response.status < 500) {
+          throw err;
+        }
+        
+        // Wait before next retry with exponential backoff
+        if (attempt < MAX_RETRIES - 1) {
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * Math.pow(2, attempt)));
+        }
+      }
+    }
+    
+    throw lastError;
+  };
+  
   // Получение записей пользователя
   const getUserBookings = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await bookingService.getUserBookings();
+      const data = await apiCallWithRetry(bookingService.getUserBookings);
       setBookings(data);
       return data;
     } catch (err) {
@@ -31,7 +60,7 @@ export const BookingProvider = ({ children }) => {
   const createBooking = useCallback(async (bookingData) => {
     try {
       setLoading(true);
-      const result = await bookingService.createBooking(bookingData);
+      const result = await apiCallWithRetry(bookingService.createBooking, bookingData);
       setBookings(prev => [result, ...prev]);
       success('Запись успешно создана');
       return result;
@@ -48,7 +77,7 @@ export const BookingProvider = ({ children }) => {
   const cancelBooking = useCallback(async (bookingId) => {
     try {
       setLoading(true);
-      await bookingService.cancelBooking(bookingId);
+      await apiCallWithRetry(bookingService.cancelBooking, bookingId);
       setBookings(prev => 
         prev.map(booking => 
           booking.id === bookingId 
@@ -70,7 +99,7 @@ export const BookingProvider = ({ children }) => {
   const getBookingDetails = useCallback(async (bookingId) => {
     try {
       setLoading(true);
-      const data = await bookingService.getBookingDetails(bookingId);
+      const data = await apiCallWithRetry(bookingService.getBookingDetails, bookingId);
       return data;
     } catch (err) {
       error('Не удалось загрузить детали записи');
@@ -84,7 +113,7 @@ export const BookingProvider = ({ children }) => {
   // Получение доступных слотов времени
   const getAvailableSlots = useCallback(async (date) => {
     try {
-      const data = await bookingService.getAvailableSlots(date);
+      const data = await apiCallWithRetry(bookingService.getAvailableSlots, date);
       setAvailableSlots(data);
       return data;
     } catch (err) {

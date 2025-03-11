@@ -21,6 +21,23 @@ const RegisterForm = () => {
   const { success, error } = useNotification();
   const navigate = useNavigate();
   
+  const formatPhoneNumber = (phone) => {
+    // Remove all non-digit characters
+    const digits = phone.replace(/\D/g, '');
+    
+    // For Kyrgyzstan: Format as +996 XXX XXX XXX
+    if (digits.length === 9 && !digits.startsWith('996')) {
+      return `+996${digits}`;
+    } else if (digits.length === 12 && digits.startsWith('996')) {
+      return `+${digits}`;
+    } else if (digits.length === 10 && digits.startsWith('0')) {
+      // If starts with 0, replace with +996
+      return `+996${digits.substring(1)}`;
+    }
+    
+    return phone;
+  };
+  
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     
@@ -91,10 +108,13 @@ const RegisterForm = () => {
     try {
       setLoading(true);
       
+      // Format phone number before sending
+      const formattedPhone = formatPhoneNumber(formData.phone);
+      
       await register({
         name: formData.name,
         email: formData.email,
-        phone: formData.phone,
+        phone: formattedPhone,
         password: formData.password
       });
       
@@ -105,8 +125,18 @@ const RegisterForm = () => {
         // Показываем ошибку с сервера
         error(err.response.data.message);
         
+        // Если есть массив ошибок валидации, обрабатываем его
+        if (err.response.data.errors) {
+          const serverErrors = {};
+          err.response.data.errors.forEach(err => {
+            if (err.field) {
+              serverErrors[err.field] = err.message;
+            }
+          });
+          setErrors(prev => ({ ...prev, ...serverErrors }));
+        } 
         // Если ошибка связана с определенным полем, устанавливаем её
-        if (err.response.data.field) {
+        else if (err.response.data.field) {
           setErrors({
             ...errors,
             [err.response.data.field]: err.response.data.message

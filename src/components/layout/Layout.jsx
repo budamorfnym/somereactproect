@@ -1,10 +1,27 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import Header from '../common/Header';
 import MobileNavigation from '../common/MobileNavigation';
 import Footer from '../common/Footer';
 import SuccessMessage from '../common/SuccessMessage';
+import Notification from '../common/Notification';
 
-const Layout = ({ children, activeTab, user, companyInfo, successMessage, showSuccessMessage, setShowSuccessMessage }) => {
+const Layout = ({ 
+  children, 
+  activeTab, 
+  user, 
+  companyInfo, 
+  successMessage, 
+  showSuccessMessage, 
+  setShowSuccessMessage 
+}) => {
+  const location = useLocation();
+  
+  // Scroll to top when route changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+  
   return (
     <div className="min-h-screen bg-gray-900 text-white flex flex-col">
       {/* Success Message Notification */}
@@ -23,7 +40,7 @@ const Layout = ({ children, activeTab, user, companyInfo, successMessage, showSu
       />
 
       {/* Main content */}
-      <main className="flex-grow pb-20">
+      <main className="flex-grow pb-20 md:pb-0">
         {children}
       </main>
 
