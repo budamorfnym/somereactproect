@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
@@ -49,14 +49,6 @@ const AppRoutes = ({ companyInfo }) => {
   return (
     <Routes>
       {/* Public routes */}
-      
-      <Route path="/" element={<Layout companyInfo={companyInfo}><HomePage /></Layout>} />
-      <Route path="/login" element={<Layout companyInfo={companyInfo}><LoginPage /></Layout>} />
-      <Route path="/register" element={<Layout companyInfo={companyInfo}><RegisterPage /></Layout>} />
-      <Route path="/services" element={<Layout companyInfo={companyInfo}><ServicesPage /></Layout>} />
-      <Route path="/gallery" element={<Layout companyInfo={companyInfo}><GalleryPage /></Layout>} />
-      <Route path="/contact" element={<Layout companyInfo={companyInfo}><ContactPage /></Layout>} />
-
       <Route path="/" element={
         <Layout 
           companyInfo={companyInfo} 
@@ -69,41 +61,134 @@ const AppRoutes = ({ companyInfo }) => {
           <HomePage />
         </Layout>
       } />
+
+      <Route path="/login" element={
+        <Layout 
+          companyInfo={companyInfo}
+          activeTab="login"
+        >
+          <LoginPage />
+        </Layout>
+      } />
+
+      <Route path="/register" element={
+        <Layout 
+          companyInfo={companyInfo}
+          activeTab="register"
+        >
+          <RegisterPage />
+        </Layout>
+      } />
+
+      <Route path="/services" element={
+        <Layout 
+          companyInfo={companyInfo}
+          activeTab="services"
+        >
+          <ServicesPage />
+        </Layout>
+      } />
+
+      <Route path="/gallery" element={
+        <Layout 
+          companyInfo={companyInfo}
+          activeTab="gallery"
+        >
+          <GalleryPage />
+        </Layout>
+      } />
+
+      <Route path="/contact" element={
+        <Layout 
+          companyInfo={companyInfo}
+          activeTab="contact"
+        >
+          <ContactPage />
+        </Layout>
+      } />
       
       {/* Protected routes for all authenticated users */}
       <Route path="/booking" element={
         <ProtectedRoute>
-          <Layout companyInfo={companyInfo}><BookingPage /></Layout>
+          <Layout 
+            companyInfo={companyInfo}
+            user={currentUser}
+            activeTab="booking"
+          >
+            <BookingPage showSuccess={showSuccess} />
+          </Layout>
         </ProtectedRoute>
       } />
+
       <Route path="/booking/:id" element={
         <ProtectedRoute>
-          <Layout companyInfo={companyInfo}><BookingDetailsPage /></Layout>
+          <Layout 
+            companyInfo={companyInfo}
+            user={currentUser}
+            activeTab="booking"
+          >
+            <BookingDetailsPage showSuccess={showSuccess} />
+          </Layout>
         </ProtectedRoute>
       } />
+
       <Route path="/profile/*" element={
         <ProtectedRoute>
-          <Layout companyInfo={companyInfo}><ProfilePage /></Layout>
+          <Layout 
+            companyInfo={companyInfo}
+            user={currentUser}
+            activeTab="profile"
+          >
+            <ProfilePage showSuccess={showSuccess} />
+          </Layout>
         </ProtectedRoute>
       } />
+
       <Route path="/cars" element={
         <ProtectedRoute>
-          <Layout companyInfo={companyInfo}><CarsPage /></Layout>
+          <Layout 
+            companyInfo={companyInfo}
+            user={currentUser}
+            activeTab="cars"
+          >
+            <CarsPage showSuccess={showSuccess} />
+          </Layout>
         </ProtectedRoute>
       } />
+
       <Route path="/cars/add" element={
         <ProtectedRoute>
-          <Layout companyInfo={companyInfo}><CarFormPage /></Layout>
+          <Layout 
+            companyInfo={companyInfo}
+            user={currentUser}
+            activeTab="cars"
+          >
+            <CarFormPage showSuccess={showSuccess} />
+          </Layout>
         </ProtectedRoute>
       } />
+
       <Route path="/cars/:id/edit" element={
         <ProtectedRoute>
-          <Layout companyInfo={companyInfo}><CarFormPage /></Layout>
+          <Layout 
+            companyInfo={companyInfo}
+            user={currentUser}
+            activeTab="cars"
+          >
+            <CarFormPage showSuccess={showSuccess} />
+          </Layout>
         </ProtectedRoute>
       } />
+
       <Route path="/loyalty" element={
         <ProtectedRoute>
-          <Layout companyInfo={companyInfo}><LoyaltyPage /></Layout>
+          <Layout 
+            companyInfo={companyInfo}
+            user={currentUser}
+            activeTab="loyalty"
+          >
+            <LoyaltyPage showSuccess={showSuccess} />
+          </Layout>
         </ProtectedRoute>
       } />
       

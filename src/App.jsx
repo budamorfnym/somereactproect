@@ -1,4 +1,3 @@
-// src/App.jsx (обновленный вариант с CarsProvider)
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import AppRoutes from './routes/AppRoutes';
@@ -6,31 +5,24 @@ import { AuthProvider } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { ServicesProvider } from './contexts/ServicesContext';
 import { BookingProvider } from './contexts/BookingContext';
-import { CarsProvider } from './contexts/CarsContext';  // Добавлен импорт
+import { CarsProvider } from './contexts/CarsContext';
+import { CompanyProvider } from './contexts/CompanyContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import Notification from './components/common/Notification';
 import LoadingSpinner from './components/common/LoadingSpinner';
-import { getCompanyInfo } from './services/companyService';
 import ErrorBoundary from './components/common/ErrorBoundary';
 
 function App() {
   const [loading, setLoading] = useState(true);
-  const [companyInfo, setCompanyInfo] = useState(null);
 
-  // Load company info on app initialization
+  // Initialize app
   useEffect(() => {
-    const initialize = async () => {
-      try {
-        // Load company info
-        const info = await getCompanyInfo();
-        setCompanyInfo(info);
-      } catch (error) {
-        console.error('Failed to initialize app:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initialize();
+    // Simulate initialization delay
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
   }, []);
 
   if (loading) {
@@ -39,21 +31,25 @@ function App() {
 
   return (
     <ErrorBoundary>
-        <Router>
+      <Router>
+        <ThemeProvider>
+          <CompanyProvider>
             <AuthProvider>
-                <NotificationProvider>
+              <NotificationProvider>
                 <ServicesProvider>
-                    <CarsProvider>  {/* Добавлен CarsProvider */}
+                  <CarsProvider>
                     <BookingProvider>
-                        <Notification />
-                        <AppRoutes companyInfo={companyInfo} />
+                      <Notification />
+                      <AppRoutes />
                     </BookingProvider>
-                    </CarsProvider>
+                  </CarsProvider>
                 </ServicesProvider>
-                </NotificationProvider>
+              </NotificationProvider>
             </AuthProvider>
-        </Router>
-    </ErrorBoundary>        
+          </CompanyProvider>
+        </ThemeProvider>
+      </Router>
+    </ErrorBoundary>
   );
 }
 
