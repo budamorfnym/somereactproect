@@ -3,7 +3,7 @@ import { CheckCircle, X } from 'lucide-react';
 
 const SuccessMessage = ({ message, onClose, duration = 3000 }) => {
   useEffect(() => {
-    // Автоматически закрываем сообщение через указанное время
+    // Automatically close after specified duration
     const timer = setTimeout(() => {
       onClose();
     }, duration);
