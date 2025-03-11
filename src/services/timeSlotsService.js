@@ -2,70 +2,52 @@ import api from '../config/api';
 
 export const timeSlotsService = {
   /**
-   * Получение доступных временных слотов на указанную дату
+   * Get available time slots for a specific date
    * 
-   * @param {string} date Дата в формате YYYY-MM-DD
-   * @param {string|null} serviceId ID услуги (опционально)
-   * @param {number|null} duration Длительность услуги в минутах (опционально)
-   * @returns {Promise<Array>} Массив доступных временных слотов
+   * @param {string} date Date in YYYY-MM-DD format
+   * @param {string|null} serviceId Service ID (optional)
+   * @param {number|null} duration Service duration in minutes (optional)
+   * @returns {Promise<Array>} List of available time slots
    */
   getAvailableTimeSlots: async (date, serviceId = null, duration = null) => {
-    try {
-      let url = `/time-slots/available?date=${date}`;
-      
-      if (serviceId) url += `&serviceId=${serviceId}`;
-      if (duration) url += `&duration=${duration}`;
-      
-      const response = await api.get(url);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching available time slots:', error);
-      
-      // Temporary mock data for development
-      return ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
-    }
+    let url = `/time-slots/available?date=${date}`;
+    
+    if (serviceId) url += `&serviceId=${serviceId}`;
+    if (duration) url += `&duration=${duration}`;
+    
+    const response = await api.get(url);
+    return response.data;
   },
 
   /**
-   * Проверка доступности конкретного временного слота
+   * Check if a specific time slot is available
    * 
-   * @param {string} date Дата в формате YYYY-MM-DD
-   * @param {string} time Время в формате HH:MM
-   * @param {string|null} serviceId ID услуги (опционально)
-   * @param {number|null} duration Длительность услуги в минутах (опционально)
-   * @returns {Promise<boolean>} Доступность слота
+   * @param {string} date Date in YYYY-MM-DD format
+   * @param {string} time Time in HH:MM format
+   * @param {string|null} serviceId Service ID (optional)
+   * @param {number|null} duration Service duration in minutes (optional)
+   * @returns {Promise<boolean>} Whether the slot is available
    */
   checkSlotAvailability: async (date, time, serviceId = null, duration = null) => {
-    try {
-      let url = `/time-slots/check?date=${date}&time=${time}`;
-      
-      if (serviceId) url += `&serviceId=${serviceId}`;
-      if (duration) url += `&duration=${duration}`;
-      
-      const response = await api.get(url);
-      return response.data.available;
-    } catch (error) {
-      console.error('Error checking slot availability:', error);
-      return true; // Assume available in development
-    }
+    let url = `/time-slots/check?date=${date}&time=${time}`;
+    
+    if (serviceId) url += `&serviceId=${serviceId}`;
+    if (duration) url += `&duration=${duration}`;
+    
+    const response = await api.get(url);
+    return response.data.available;
   },
 
   /**
-   * Блокирование временного слота для бронирования
-   * (используется при создании записи)
+   * Reserve a time slot temporarily during booking process
    * 
-   * @param {string} date Дата в формате YYYY-MM-DD
-   * @param {string} time Время в формате HH:MM
-   * @param {number} duration Продолжительность в минутах
-   * @returns {Promise<Object>} Результат блокировки
+   * @param {string} date Date in YYYY-MM-DD format
+   * @param {string} time Time in HH:MM format
+   * @param {number} duration Service duration in minutes
+   * @returns {Promise<Object>} Reservation result
    */
   reserveTimeSlot: async (date, time, duration) => {
-    try {
-      const response = await api.post('/time-slots/reserve', { date, time, duration });
-      return response.data;
-    } catch (error) {
-      console.error('Error reserving time slot:', error);
-      throw error;
-    }
+    const response = await api.post('/time-slots/reserve', { date, time, duration });
+    return response.data;
   }
 };

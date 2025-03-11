@@ -1,43 +1,85 @@
-import React, { createContext, useState, useCallback } from 'react';
+import React, { createContext, useState, useCallback, useMemo } from 'react';
 
 export const NotificationContext = createContext();
 
+/**
+ * Maximum number of notifications to show at once
+ */
+const MAX_NOTIFICATIONS = 5;
+
+/**
+ * Default notification duration in milliseconds
+ */
+const DEFAULT_DURATION = 5000;
+
+/**
+ * Provider component for notifications system
+ */
 export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
 
-  // Add notification
+  /**
+   * Add a new notification
+   * 
+   * @param {Object} notification Notification details
+   * @param {string} notification.type Notification type ('success', 'error', 'info', 'warning')
+   * @param {string} notification.message Notification message
+   * @param {number} notification.duration Duration in ms (0 for no auto-dismiss)
+   * @returns {string} Notification ID
+   */
   const addNotification = useCallback((notification) => {
-    const id = Math.random().toString(36).substr(2, 9);
+    // Generate unique ID
+    const id = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+    
+    // Create notification object
     const newNotification = {
       id,
-      ...notification,
-      time: new Date()
+      type: notification.type || 'info',
+      message: notification.message || '',
+      duration: notification.duration !== undefined ? notification.duration : DEFAULT_DURATION,
+      timestamp: new Date()
     };
     
-    setNotifications(current => [newNotification, ...current]);
+    // Add to state, limiting maximum number
+    setNotifications(current => {
+      const updatedNotifications = [newNotification, ...current].slice(0, MAX_NOTIFICATIONS);
+      return updatedNotifications;
+    });
     
-    // Auto-remove notification if duration is set
-    if (notification.duration !== 0) {
+    // Set auto-dismiss timer if duration is not 0
+    if (newNotification.duration > 0) {
       setTimeout(() => {
         removeNotification(id);
-      }, notification.duration || 5000);
+      }, newNotification.duration);
     }
     
     return id;
   }, []);
 
-  // Remove notification
+  /**
+   * Remove a notification by ID
+   * 
+   * @param {string} id Notification ID to remove
+   */
   const removeNotification = useCallback((id) => {
     setNotifications(current => current.filter(n => n.id !== id));
   }, []);
 
-  // Clear all notifications
+  /**
+   * Clear all notifications
+   */
   const clearNotifications = useCallback(() => {
     setNotifications([]);
   }, []);
 
-  // Success notification
-  const success = useCallback((message, duration = 5000) => {
+  /**
+   * Create a success notification
+   * 
+   * @param {string} message Notification message
+   * @param {number} duration Duration in ms
+   * @returns {string} Notification ID
+   */
+  const success = useCallback((message, duration = DEFAULT_DURATION) => {
     return addNotification({
       type: 'success',
       message,
@@ -45,8 +87,14 @@ export const NotificationProvider = ({ children }) => {
     });
   }, [addNotification]);
 
-  // Error notification
-  const error = useCallback((message, duration = 5000) => {
+  /**
+   * Create an error notification
+   * 
+   * @param {string} message Notification message
+   * @param {number} duration Duration in ms
+   * @returns {string} Notification ID
+   */
+  const error = useCallback((message, duration = DEFAULT_DURATION) => {
     return addNotification({
       type: 'error',
       message,
@@ -54,8 +102,14 @@ export const NotificationProvider = ({ children }) => {
     });
   }, [addNotification]);
 
-  // Info notification
-  const info = useCallback((message, duration = 5000) => {
+  /**
+   * Create an info notification
+   * 
+   * @param {string} message Notification message
+   * @param {number} duration Duration in ms
+   * @returns {string} Notification ID
+   */
+  const info = useCallback((message, duration = DEFAULT_DURATION) => {
     return addNotification({
       type: 'info',
       message,
@@ -63,8 +117,14 @@ export const NotificationProvider = ({ children }) => {
     });
   }, [addNotification]);
 
-  // Warning notification
-  const warning = useCallback((message, duration = 5000) => {
+  /**
+   * Create a warning notification
+   * 
+   * @param {string} message Notification message
+   * @param {number} duration Duration in ms
+   * @returns {string} Notification ID
+   */
+  const warning = useCallback((message, duration = DEFAULT_DURATION) => {
     return addNotification({
       type: 'warning',
       message,
@@ -72,7 +132,10 @@ export const NotificationProvider = ({ children }) => {
     });
   }, [addNotification]);
 
-  const value = {
+  /**
+   * Context value - memoized to prevent unnecessary re-renders
+   */
+  const contextValue = useMemo(() => ({
     notifications,
     addNotification,
     removeNotification,
@@ -81,7 +144,20 @@ export const NotificationProvider = ({ children }) => {
     error,
     info,
     warning
-  };
+  }), [
+    notifications,
+    addNotification,
+    removeNotification,
+    clearNotifications,
+    success,
+    error,
+    info,
+    warning
+  ]);
 
-  return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
+  return (
+    <NotificationContext.Provider value={contextValue}>
+      {children}
+    </NotificationContext.Provider>
+  );
 };

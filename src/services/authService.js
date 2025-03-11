@@ -1,5 +1,8 @@
-import apiService from './api';
+import api from './api';
 
+/**
+ * Authentication service for handling auth-related API calls
+ */
 export const authService = {
   /**
    * Login with email/phone and password
@@ -7,136 +10,137 @@ export const authService = {
    * @param {Object} credentials User credentials
    * @param {string} credentials.email Email or phone
    * @param {string} credentials.password Password
-   * @returns {Promise<Object>} Response with user and token
+   * @param {boolean} credentials.remember Remember user
+   * @returns {Promise<Object>} User data and token
    */
   login: async (credentials) => {
-    try {
-      const response = await apiService.post('/auth/login', credentials);
-      return response.data;
-    } catch (error) {
-      console.error('Login error:', error);
-      throw error;
-    }
+    const response = await api.post('/auth/login', credentials);
+    return response.data;
   },
 
   /**
-   * Register new user
+   * Register a new user account
    * 
-   * @param {Object} userData User data
-   * @param {string} userData.name User name
-   * @param {string} userData.email Email
-   * @param {string} userData.phone Phone
-   * @param {string} userData.password Password
-   * @returns {Promise<Object>} Response with user and token
+   * @param {Object} userData User registration data
+   * @param {string} userData.name User's name
+   * @param {string} userData.email User's email
+   * @param {string} userData.phone User's phone (optional)
+   * @param {string} userData.password User's password
+   * @returns {Promise<Object>} User data and token
    */
   register: async (userData) => {
+    const response = await api.post('/auth/register', userData);
+    return response.data;
+  },
+
+  /**
+   * Validate current auth token
+   * 
+   * @returns {Promise<Object>} Validation result
+   */
+  validateToken: async () => {
     try {
-      const response = await apiService.post('/auth/register', userData);
+      const response = await api.post('/auth/validate-token');
       return response.data;
     } catch (error) {
-      console.error('Registration error:', error);
-      throw error;
+      return { valid: false };
     }
   },
 
   /**
    * Request password reset
    * 
-   * @param {Object} data Request data
-   * @param {string} data.email Email
-   * @returns {Promise<Object>} Response with success message
+   * @param {Object} data Password reset request data
+   * @param {string} data.email User's email
+   * @returns {Promise<Object>} Request result
    */
   forgotPassword: async (data) => {
-    try {
-      const response = await apiService.post('/auth/forgot-password', data);
-      return response.data;
-    } catch (error) {
-      console.error('Forgot password error:', error);
-      throw error;
-    }
+    const response = await api.post('/auth/forgot-password', data);
+    return response.data;
   },
 
   /**
    * Reset password with token
    * 
-   * @param {Object} data Reset data
+   * @param {Object} data Password reset data
    * @param {string} data.token Reset token
    * @param {string} data.password New password
-   * @returns {Promise<Object>} Response with success message
+   * @returns {Promise<Object>} Reset result
    */
   resetPassword: async (data) => {
-    try {
-      const response = await apiService.post('/auth/reset-password', data);
-      return response.data;
-    } catch (error) {
-      console.error('Reset password error:', error);
-      throw error;
-    }
-  },
-
-  /**
-   * Validate auth token
-   * 
-   * @returns {Promise<Object>} Response with validation result
-   */
-  validateToken: async () => {
-    try {
-      const response = await apiService.post('/auth/validate-token');
-      return response.data;
-    } catch (error) {
-      console.error('Token validation error:', error);
-      return { valid: false };
-    }
+    const response = await api.post('/auth/reset-password', data);
+    return response.data;
   },
 
   /**
    * Update user profile
    * 
-   * @param {Object} userData Updated user data
-   * @returns {Promise<Object>} Updated user profile
+   * @param {Object} userData Updated profile data
+   * @returns {Promise<Object>} Updated user data
    */
   updateProfile: async (userData) => {
-    try {
-      const response = await apiService.put('/users/profile', userData);
-      return response.data;
-    } catch (error) {
-      console.error('Update profile error:', error);
-      throw error;
-    }
+    const response = await api.put('/users/profile', userData);
+    return response.data;
   },
 
   /**
-   * Change password
+   * Change user password
    * 
-   * @param {Object} passwords Password data
-   * @param {string} passwords.currentPassword Current password
-   * @param {string} passwords.newPassword New password
-   * @returns {Promise<Object>} Response with success message
+   * @param {Object} passwordData Password change data
+   * @param {string} passwordData.currentPassword Current password
+   * @param {string} passwordData.newPassword New password
+   * @returns {Promise<Object>} Change result
    */
-  changePassword: async (passwords) => {
-    try {
-      const response = await apiService.post('/users/change-password', passwords);
-      return response.data;
-    } catch (error) {
-      console.error('Change password error:', error);
-      throw error;
-    }
+  changePassword: async (passwordData) => {
+    const response = await api.post('/users/change-password', passwordData);
+    return response.data;
   },
 
   /**
    * Upload profile image
    * 
    * @param {FormData} formData Form data with image
-   * @param {Function} onProgress Progress callback
-   * @returns {Promise<Object>} Response with image URL
+   * @returns {Promise<Object>} Upload result with image URL
    */
-  uploadProfileImage: async (formData, onProgress) => {
-    try {
-      const response = await apiService.uploadFile('/users/profile/image', formData, onProgress);
-      return response.data;
-    } catch (error) {
-      console.error('Upload profile image error:', error);
-      throw error;
-    }
+  uploadProfileImage: async (formData) => {
+    const response = await api.post('/users/profile/image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data;
+  },
+
+  /**
+   * Get user profile
+   * 
+   * @returns {Promise<Object>} User profile data
+   */
+  getProfile: async () => {
+    const response = await api.get('/users/profile');
+    return response.data;
+  },
+
+  /**
+   * Verify email with token
+   * 
+   * @param {string} token Verification token
+   * @returns {Promise<Object>} Verification result
+   */
+  verifyEmail: async (token) => {
+    const response = await api.post(`/auth/verify-email/${token}`);
+    return response.data;
+  },
+
+  /**
+   * Resend verification email
+   * 
+   * @param {Object} data Email data
+   * @param {string} data.email User's email
+   * @returns {Promise<Object>} Request result
+   */
+  resendVerificationEmail: async (data) => {
+    const response = await api.post('/auth/resend-verification', data);
+    return response.data;
   }
 };

@@ -1,90 +1,171 @@
-// src/utils/formatters.js
-
 /**
- * Форматирование даты в локализованную строку
+ * Format date to localized string
  * 
- * @param {Date} date Объект даты
- * @param {Object} options Опции форматирования
- * @returns {string} Отформатированная дата
+ * @param {Date|string} date Date object or ISO string
+ * @param {Object} options Format options
+ * @returns {string} Formatted date
  */
 export const formatDate = (date, options = {}) => {
   if (!date) return '';
   
-  const defaultOptions = {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    ...options
-  };
-  
-  return new Date(date).toLocaleDateString('ru-RU', defaultOptions);
+  try {
+    // Ensure we have a Date object
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    
+    // Check if valid date
+    if (isNaN(dateObj.getTime())) {
+      return '';
+    }
+    
+    const defaultOptions = {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      ...options
+    };
+    
+    return dateObj.toLocaleDateString('ru-RU', defaultOptions);
+  } catch (err) {
+    console.error('Error formatting date:', err);
+    return typeof date === 'string' ? date : '';
+  }
 };
 
 /**
- * Форматирование времени
+ * Format time string
  * 
- * @param {string} time Строка времени в формате HH:MM
- * @returns {string} Отформатированное время
+ * @param {string} time Time string in HH:MM format
+ * @returns {string} Formatted time
  */
 export const formatTime = (time) => {
   if (!time) return '';
   
-  // Если время уже в нужном формате, возвращаем его
+  // If time is already in HH:MM format, return it
   if (typeof time === 'string' && /^\d{1,2}:\d{2}$/.test(time)) {
     return time;
   }
   
-  // Если это объект Date, извлекаем время
-  if (time instanceof Date) {
-    return time.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-  }
-  
-  // Если это строка с датой и временем, преобразуем в объект Date
   try {
+    // If it's a Date object, extract the time
+    if (time instanceof Date) {
+      return time.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    }
+    
+    // If it's a string with date and time, convert to Date and extract time
     const date = new Date(time);
-    return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-  } catch (e) {
+    if (!isNaN(date.getTime())) {
+      return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    }
+    
+    return time;
+  } catch (err) {
+    console.error('Error formatting time:', err);
     return time;
   }
 };
 
 /**
- * Форматирование денежной суммы
+ * Format currency amount
  * 
- * @param {number} amount Сумма
- * @param {string} currency Валюта (по умолчанию "сом")
- * @returns {string} Отформатированная сумма с символом валюты
+ * @param {number} amount Amount to format
+ * @param {string} currency Currency code (default: 'сом')
+ * @returns {string} Formatted currency amount
  */
 export const formatCurrency = (amount, currency = 'сом') => {
   if (amount === undefined || amount === null) return '';
   
-  return `${Number(amount).toLocaleString('ru-RU')} ${currency}`;
+  try {
+    // Ensure amount is a number
+    const numAmount = Number(amount);
+    
+    if (isNaN(numAmount)) {
+      return `0 ${currency}`;
+    }
+    
+    // Format with thousands separator
+    return `${numAmount.toLocaleString('ru-RU')} ${currency}`;
+  } catch (err) {
+    console.error('Error formatting currency:', err);
+    return `${amount} ${currency}`;
+  }
 };
 
 /**
- * Форматирование номера телефона
+ * Format phone number
  * 
- * @param {string} phone Номер телефона
- * @returns {string} Отформатированный номер телефона
+ * @param {string} phone Phone number
+ * @returns {string} Formatted phone number
  */
 export const formatPhone = (phone) => {
   if (!phone) return '';
   
-  // Удаляем все нецифровые символы
-  const cleaned = ('' + phone).replace(/\D/g, '');
-  
-  // Форматируем номер телефона для Кыргызстана
-  if (cleaned.length === 9 && cleaned.startsWith('0')) {
-    // Если номер начинается с 0 и имеет 9 цифр (например, 0550123456)
-    return `+996 ${cleaned.substring(0, 3)} ${cleaned.substring(3, 6)} ${cleaned.substring(6, 9)}`;
-  } else if (cleaned.length === 9) {
-    // Если номер имеет 9 цифр без кода страны (например, 550123456)
-    return `+996 ${cleaned.substring(0, 3)} ${cleaned.substring(3, 6)} ${cleaned.substring(6, 9)}`;
-  } else if (cleaned.length === 12 && cleaned.startsWith('996')) {
-    // Если номер начинается с 996 и имеет 12 цифр (например, 996550123456)
-    return `+${cleaned.substring(0, 3)} ${cleaned.substring(3, 6)} ${cleaned.substring(6, 9)} ${cleaned.substring(9, 12)}`;
+  try {
+    // Remove all non-digit characters
+    const cleaned = String(phone).replace(/\D/g, '');
+    
+    // Format phone number based on length and pattern
+    if (cleaned.length === 9 && cleaned.startsWith('0')) {
+      // Format: 0550123456 -> +996 550 123 456
+      return `+996 ${cleaned.substring(0, 3)} ${cleaned.substring(3, 6)} ${cleaned.substring(6, 9)}`;
+    } else if (cleaned.length === 9) {
+      // Format: 550123456 -> +996 550 123 456
+      return `+996 ${cleaned.substring(0, 3)} ${cleaned.substring(3, 6)} ${cleaned.substring(6, 9)}`;
+    } else if (cleaned.length === 12 && cleaned.startsWith('996')) {
+      // Format: 996550123456 -> +996 550 123 456
+      return `+${cleaned.substring(0, 3)} ${cleaned.substring(3, 6)} ${cleaned.substring(6, 9)} ${cleaned.substring(9, 12)}`;
+    } else if (cleaned.length === 10 && cleaned.startsWith('0')) {
+      // Format: 0550123456 -> +996 550 12 34 56
+      return `+996 ${cleaned.substring(1, 4)} ${cleaned.substring(4, 6)} ${cleaned.substring(6, 8)} ${cleaned.substring(8, 10)}`;
+    }
+    
+    // If no specific format matches, return the original
+    return phone;
+  } catch (err) {
+    console.error('Error formatting phone number:', err);
+    return phone;
   }
+};
+
+/**
+ * Format file size
+ * 
+ * @param {number} bytes File size in bytes
+ * @param {number} decimals Number of decimal places
+ * @returns {string} Formatted file size (e.g. "1.5 MB")
+ */
+export const formatFileSize = (bytes, decimals = 2) => {
+  if (bytes === 0) return '0 Bytes';
   
-  // Если формат не распознан, возвращаем исходный номер
-  return phone;
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+};
+
+/**
+ * Format a duration in minutes to hours and minutes
+ * 
+ * @param {number} minutes Duration in minutes
+ * @returns {string} Formatted duration (e.g. "1 ч 30 мин")
+ */
+export const formatDuration = (minutes) => {
+  if (!minutes && minutes !== 0) return '';
+  
+  const mins = parseInt(minutes, 10);
+  
+  if (isNaN(mins)) return '';
+  
+  const hours = Math.floor(mins / 60);
+  const remainingMinutes = mins % 60;
+  
+  if (hours === 0) {
+    return `${remainingMinutes} мин`;
+  } else if (remainingMinutes === 0) {
+    return `${hours} ч`;
+  } else {
+    return `${hours} ч ${remainingMinutes} мин`;
+  }
 };

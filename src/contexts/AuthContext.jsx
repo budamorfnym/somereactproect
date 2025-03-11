@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { authService } from '../services/authService';
 import { setToken, getToken, setUser, getUser, clearAuth } from '../utils/tokenStorage';
 import { useNotification } from '../hooks/useNotification';
@@ -9,148 +9,151 @@ export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(getUser());
   const [isAuthenticated, setIsAuthenticated] = useState(!!getToken());
   const [loading, setLoading] = useState(true);
-  const { error } = useNotification();
+  const { error: showError } = useNotification();
 
-  // Проверка токена при загрузке
+  // Listen for unauthorized events to handle token invalidation
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setIsAuthenticated(false);
+      setCurrentUser(null);
+    };
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+    return () => {
+      window.removeEventListener('auth:unauthorized', handleUnauthorized);
+    };
+  }, []);
+
+  // Validate token on initial load
   useEffect(() => {
     const validateAuth = async () => {
-      const token = getToken();
-      const refreshTokenValue = localStorage.getItem('refresh_token');
-      
-      if (token) {
-        try {
-          const response = await authService.validateToken();
-          
-          if (!response.valid) {
-            // Token is invalid, try to refresh
-            if (refreshTokenValue) {
-              try {
-                const refreshResponse = await authService.refreshToken();
-                setToken(refreshResponse.token);
-                if (refreshResponse.refreshToken) {
-                  localStorage.setItem('refresh_token', refreshResponse.refreshToken);
-                }
-                // Token refreshed successfully
-                return;
-              } catch (refreshErr) {
-                // If refresh fails, clean up and logout
-                clearAuth();
-                setIsAuthenticated(false);
-                setCurrentUser(null);
-              }
-            } else {
-              // No refresh token, clean up
-              clearAuth();
-              setIsAuthenticated(false);
-              setCurrentUser(null);
-            }
-          }
-        } catch (err) {
-          // Error validating token, clean up
+      try {
+        setLoading(true);
+        const token = getToken();
+        
+        if (!token) {
+          setIsAuthenticated(false);
+          setCurrentUser(null);
+          return;
+        }
+        
+        const response = await authService.validateToken();
+        
+        if (!response.valid) {
           clearAuth();
           setIsAuthenticated(false);
           setCurrentUser(null);
         }
+      } catch (err) {
+        // Error validating token, clear auth state
+        console.error('Token validation error:', err);
+        clearAuth();
+        setIsAuthenticated(false);
+        setCurrentUser(null);
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
     };
 
     validateAuth();
   }, []);
 
-  // Функция логина
-  const login = async (credentials) => {
+  // Login handler
+  const login = useCallback(async (credentials) => {
     try {
       const response = await authService.login(credentials);
+      
+      // Save authentication data
       setToken(response.token);
-      
-      // Store refresh token if available
-      if (response.refreshToken) {
-        localStorage.setItem('refresh_token', response.refreshToken);
-      }
-      
       setUser(response.user);
+      
+      // Update state
       setCurrentUser(response.user);
       setIsAuthenticated(true);
+      
       return response.user;
     } catch (err) {
       throw err;
     }
-  };
+  }, []);
 
-  // Функция регистрации
-  const register = async (userData) => {
+  // Registration handler
+  const register = useCallback(async (userData) => {
     try {
       const response = await authService.register(userData);
+      
+      // Save authentication data
       setToken(response.token);
-      
-      // Store refresh token if available
-      if (response.refreshToken) {
-        localStorage.setItem('refresh_token', response.refreshToken);
-      }
-      
       setUser(response.user);
+      
+      // Update state
       setCurrentUser(response.user);
       setIsAuthenticated(true);
+      
       return response.user;
     } catch (err) {
       throw err;
     }
-  };
+  }, []);
 
-  // Функция выхода
-  const logout = () => {
+  // Logout handler
+  const logout = useCallback(() => {
+    // Clear auth data from storage
     clearAuth();
-    localStorage.removeItem('refresh_token');
+    
+    // Update state
     setCurrentUser(null);
     setIsAuthenticated(false);
-  };
+  }, []);
 
-  // Обновление профиля пользователя
-  const updateProfile = async (userData) => {
+  // Profile update handler
+  const updateProfile = useCallback(async (userData) => {
     try {
       const updatedUser = await authService.updateProfile(userData);
+      
+      // Update stored user data
       setUser(updatedUser);
       setCurrentUser(updatedUser);
+      
       return updatedUser;
     } catch (err) {
-      error('Не удалось обновить профиль');
+      showError('Не удалось обновить профиль');
       throw err;
     }
-  };
+  }, [showError]);
 
-  // Запрос на сброс пароля
-  const forgotPassword = async (data) => {
+  // Password reset request handler
+  const forgotPassword = useCallback(async (data) => {
     try {
       return await authService.forgotPassword(data);
     } catch (err) {
-      error('Не удалось отправить запрос на сброс пароля');
+      showError('Не удалось отправить запрос на сброс пароля');
       throw err;
     }
-  };
+  }, [showError]);
 
-  // Сброс пароля
-  const resetPassword = async (data) => {
+  // Password reset handler
+  const resetPassword = useCallback(async (data) => {
     try {
       return await authService.resetPassword(data);
     } catch (err) {
-      error('Не удалось сбросить пароль');
+      showError('Не удалось сбросить пароль');
       throw err;
     }
-  };
+  }, [showError]);
 
-  // Смена пароля
-  const changePassword = async (passwordData) => {
+  // Password change handler
+  const changePassword = useCallback(async (passwordData) => {
     try {
       return await authService.changePassword(passwordData);
     } catch (err) {
-      error('Не удалось изменить пароль');
+      showError('Не удалось изменить пароль');
       throw err;
     }
-  };
+  }, [showError]);
 
-  const value = {
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
     currentUser,
     isAuthenticated,
     loading,
@@ -161,7 +164,22 @@ export const AuthProvider = ({ children }) => {
     changePassword,
     forgotPassword,
     resetPassword
-  };
+  }), [
+    currentUser,
+    isAuthenticated,
+    loading,
+    login,
+    register,
+    logout,
+    updateProfile,
+    changePassword,
+    forgotPassword,
+    resetPassword
+  ]);
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={contextValue}>
+      {children}
+    </AuthContext.Provider>
+  );
 };

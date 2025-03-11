@@ -1,104 +1,58 @@
-// src/services/loyaltyService.js
 import api from './api';
 
+/**
+ * Service for handling loyalty-related API calls
+ */
 export const loyaltyService = {
   /**
-   * Получение текущего баланса баллов лояльности пользователя
+   * Get current user's loyalty points balance
    * 
-   * @returns {Promise<Object>} Информация о баллах
+   * @returns {Promise<Object>} Loyalty points data
    */
   getLoyaltyPoints: async () => {
-    try {
-      const response = await api.get('/loyalty/points');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching loyalty points:', error);
-      
-      // Временная заглушка для разработки
-      return { points: 250 };
-    }
+    const response = await api.get('/loyalty/points');
+    return response.data;
   },
 
   /**
-   * Получение текущего статуса лояльности пользователя
+   * Get current user's loyalty status information
    * 
-   * @returns {Promise<Object>} Информация о статусе
+   * @returns {Promise<Object>} Loyalty status data
    */
   getLoyaltyStatus: async () => {
-    try {
-      const response = await api.get('/loyalty/status');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching loyalty status:', error);
-      
-      // Временная заглушка для разработки
-      return {
-        name: 'Bronze',
-        description: 'Бронзовый уровень',
-        progress: 35,
-        pointsEarned: 3500,
-        pointsRequired: 10000,
-        nextLevel: 'Silver'
-      };
-    }
+    const response = await api.get('/loyalty/status');
+    return response.data;
   },
 
   /**
-   * Получение истории баллов
+   * Get user's loyalty points history
    * 
-   * @returns {Promise<Array>} История начислений и списаний
+   * @returns {Promise<Array>} History of points transactions
    */
   getPointsHistory: async () => {
-    try {
-      const response = await api.get('/loyalty/history');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching points history:', error);
-      
-      // Временная заглушка для разработки
-      return [
-        { id: 1, date: '2023-08-01', amount: 120, type: 'credit', description: 'Начисление за комплексную мойку' },
-        { id: 2, date: '2023-07-15', amount: 50, type: 'debit', description: 'Списание для оплаты услуги' },
-        { id: 3, date: '2023-07-01', amount: 200, type: 'credit', description: 'Начисление за полировку' }
-      ];
-    }
+    const response = await api.get('/loyalty/history');
+    return response.data;
   },
 
   /**
-   * Получение доступных привилегий
+   * Get available loyalty privileges
    * 
-   * @returns {Promise<Array>} Список привилегий
+   * @returns {Promise<Array>} List of available privileges
    */
   getLoyaltyPrivileges: async () => {
-    try {
-      const response = await api.get('/loyalty/privileges');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching loyalty privileges:', error);
-      
-      // Временная заглушка для разработки
-      return [
-        { id: 1, name: 'Скидка 5%', description: 'На все услуги', isAvailable: true, requiredStatus: 'Bronze' },
-        { id: 2, name: 'Приоритетная запись', description: 'Запись без очереди', isAvailable: false, requiredStatus: 'Silver' },
-        { id: 3, name: 'Бесплатная чистка дисков', description: 'При заказе комплексной мойки', isAvailable: false, requiredStatus: 'Gold' }
-      ];
-    }
+    const response = await api.get('/loyalty/privileges');
+    return response.data;
   },
 
   /**
-   * Использование баллов для оплаты услуги
+   * Use loyalty points to pay for booking
    * 
-   * @param {string} bookingId ID записи
-   * @param {number} pointsAmount Количество баллов
-   * @returns {Promise<Object>} Результат использования баллов
+   * @param {string} bookingId ID of the booking
+   * @param {number} pointsAmount Amount of points to use
+   * @returns {Promise<Object>} Result including remaining points
    */
   usePoints: async (bookingId, pointsAmount) => {
-    try {
-      const response = await api.post('/loyalty/use-points', { bookingId, pointsAmount });
-      return response.data;
-    } catch (error) {
-      console.error('Error using loyalty points:', error);
-      throw error;
-    }
+    const response = await api.post('/loyalty/use-points', { bookingId, pointsAmount });
+    return response.data;
   }
 };
