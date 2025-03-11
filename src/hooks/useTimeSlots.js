@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { timeSlotsService } from '../components/services/timeSlotsService';
+import { timeSlotsService } from '../services/timeSlotsService';
 import { useNotification } from './useNotification';
 
 export const useTimeSlots = () => {
