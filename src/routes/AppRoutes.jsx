@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { LoyaltyProvider } from '../contexts/LoyaltyContext';
 
 // Layout
 import Layout from '../components/layout/Layout';
