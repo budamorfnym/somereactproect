@@ -3,28 +3,47 @@ import { authService } from '../services/authService';
 import { setToken, getToken, setUser, getUser, clearAuth } from '../utils/tokenStorage';
 import { useNotification } from '../hooks/useNotification';
 
+// Create context
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
+  // State
   const [currentUser, setCurrentUser] = useState(getUser());
   const [isAuthenticated, setIsAuthenticated] = useState(!!getToken());
   const [loading, setLoading] = useState(true);
+  const [initializing, setInitializing] = useState(true);
+  const [lastAuthCheck, setLastAuthCheck] = useState(Date.now());
+  
+  // Hooks
   const { error: showError } = useNotification();
+  
+  // Function to handle authentication errors
+  const handleAuthError = useCallback((error) => {
+    const errorMessage = error.response?.data?.message || error.message || 'Ошибка аутентификации';
+    showError(errorMessage);
+    return Promise.reject(error);
+  }, [showError]);
 
-  // Listen for unauthorized events to handle token invalidation
+  // Handle unauthorized event (token invalidation)
   useEffect(() => {
     const handleUnauthorized = () => {
+      // Clear authentication state
       setIsAuthenticated(false);
       setCurrentUser(null);
+      
+      // Clear tokens
+      clearAuth();
     };
 
+    // Listen for custom unauthorized event
     window.addEventListener('auth:unauthorized', handleUnauthorized);
+    
     return () => {
       window.removeEventListener('auth:unauthorized', handleUnauthorized);
     };
   }, []);
 
-  // Validate token on initial load
+  // Validate token on initial load and periodically
   useEffect(() => {
     const validateAuth = async () => {
       try {
@@ -37,78 +56,159 @@ export const AuthProvider = ({ children }) => {
           return;
         }
         
-        const response = await authService.validateToken();
+        const { valid, user } = await authService.validateToken();
         
-        if (!response.valid) {
+        if (!valid) {
           clearAuth();
           setIsAuthenticated(false);
           setCurrentUser(null);
+        } else if (user) {
+          // Update user data if returned
+          setUser(user);
+          setCurrentUser(user);
+          setIsAuthenticated(true);
         }
       } catch (err) {
-        // Error validating token, clear auth state
         console.error('Token validation error:', err);
         clearAuth();
         setIsAuthenticated(false);
         setCurrentUser(null);
       } finally {
         setLoading(false);
+        setInitializing(false);
       }
     };
 
+    // Run initial validation
     validateAuth();
+    
+    // Set up periodic validation (every 15 minutes)
+    const intervalId = setInterval(() => {
+      setLastAuthCheck(Date.now());
+    }, 15 * 60 * 1000);
+    
+    return () => clearInterval(intervalId);
   }, []);
+  
+  // Re-validate when lastAuthCheck changes
+  useEffect(() => {
+    // Skip initial validation
+    if (initializing) return;
+    
+    const revalidateAuth = async () => {
+      // Only validate if user is already authenticated
+      if (isAuthenticated && getToken()) {
+        try {
+          const { valid, user } = await authService.validateToken();
+          
+          if (!valid) {
+            clearAuth();
+            setIsAuthenticated(false);
+            setCurrentUser(null);
+          } else if (user) {
+            // Update user data if different
+            if (JSON.stringify(currentUser) !== JSON.stringify(user)) {
+              setUser(user);
+              setCurrentUser(user);
+            }
+          }
+        } catch (err) {
+          console.warn('Periodic token validation failed:', err);
+        }
+      }
+    };
+    
+    revalidateAuth();
+  }, [lastAuthCheck, currentUser, isAuthenticated, initializing]);
 
   // Login handler
   const login = useCallback(async (credentials) => {
     try {
-      const response = await authService.login(credentials);
+      setLoading(true);
+      const result = await authService.login(credentials);
       
       // Save authentication data
-      setToken(response.token);
-      setUser(response.user);
+      setToken(result.token);
+      setUser(result.user);
       
-      // Update state
-      setCurrentUser(response.user);
+      // Update local state
+      setCurrentUser(result.user);
       setIsAuthenticated(true);
       
-      return response.user;
-    } catch (err) {
-      throw err;
+      // Store refresh token if provided
+      if (result.refreshToken) {
+        localStorage.setItem('refresh_token', result.refreshToken);
+      }
+      
+      return result.user;
+    } catch (error) {
+      return handleAuthError(error);
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  }, [handleAuthError]);
 
-  // Registration handler
+  // Register handler
   const register = useCallback(async (userData) => {
     try {
-      const response = await authService.register(userData);
+      setLoading(true);
+      const result = await authService.register(userData);
       
       // Save authentication data
-      setToken(response.token);
-      setUser(response.user);
+      setToken(result.token);
+      setUser(result.user);
       
-      // Update state
-      setCurrentUser(response.user);
+      // Update local state
+      setCurrentUser(result.user);
       setIsAuthenticated(true);
       
-      return response.user;
-    } catch (err) {
-      throw err;
+      // Store refresh token if provided
+      if (result.refreshToken) {
+        localStorage.setItem('refresh_token', result.refreshToken);
+      }
+      
+      return result.user;
+    } catch (error) {
+      return handleAuthError(error);
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  }, [handleAuthError]);
 
   // Logout handler
-  const logout = useCallback(() => {
-    // Clear auth data from storage
-    clearAuth();
-    
-    // Update state
-    setCurrentUser(null);
-    setIsAuthenticated(false);
-  }, []);
+  const logout = useCallback(async () => {
+    try {
+      setLoading(true);
+      
+      // Notify server about logout
+      if (isAuthenticated) {
+        await authService.logout();
+      }
+      
+      // Clear local auth data
+      clearAuth();
+      localStorage.removeItem('refresh_token');
+      
+      // Update state
+      setCurrentUser(null);
+      setIsAuthenticated(false);
+    } catch (error) {
+      console.warn('Logout error:', error);
+      
+      // Still clear local auth even if server logout fails
+      clearAuth();
+      localStorage.removeItem('refresh_token');
+      setCurrentUser(null);
+      setIsAuthenticated(false);
+    } finally {
+      setLoading(false);
+    }
+  }, [isAuthenticated]);
 
-  // Profile update handler
+  // Update profile handler
   const updateProfile = useCallback(async (userData) => {
     try {
+      setLoading(true);
       const updatedUser = await authService.updateProfile(userData);
       
       // Update stored user data
@@ -116,41 +216,102 @@ export const AuthProvider = ({ children }) => {
       setCurrentUser(updatedUser);
       
       return updatedUser;
-    } catch (err) {
-      showError('Не удалось обновить профиль');
-      throw err;
+    } catch (error) {
+      return handleAuthError(error);
+    } finally {
+      setLoading(false);
     }
-  }, [showError]);
-
-  // Password reset request handler
-  const forgotPassword = useCallback(async (data) => {
-    try {
-      return await authService.forgotPassword(data);
-    } catch (err) {
-      showError('Не удалось отправить запрос на сброс пароля');
-      throw err;
-    }
-  }, [showError]);
-
-  // Password reset handler
-  const resetPassword = useCallback(async (data) => {
-    try {
-      return await authService.resetPassword(data);
-    } catch (err) {
-      showError('Не удалось сбросить пароль');
-      throw err;
-    }
-  }, [showError]);
+  }, [handleAuthError]);
 
   // Password change handler
   const changePassword = useCallback(async (passwordData) => {
     try {
+      setLoading(true);
       return await authService.changePassword(passwordData);
-    } catch (err) {
-      showError('Не удалось изменить пароль');
-      throw err;
+    } catch (error) {
+      return handleAuthError(error);
+    } finally {
+      setLoading(false);
     }
-  }, [showError]);
+  }, [handleAuthError]);
+
+  // Password reset request handler
+  const forgotPassword = useCallback(async (data) => {
+    try {
+      setLoading(true);
+      return await authService.forgotPassword(data);
+    } catch (error) {
+      return handleAuthError(error);
+    } finally {
+      setLoading(false);
+    }
+  }, [handleAuthError]);
+
+  // Password reset handler
+  const resetPassword = useCallback(async (data) => {
+    try {
+      setLoading(true);
+      return await authService.resetPassword(data);
+    } catch (error) {
+      return handleAuthError(error);
+    } finally {
+      setLoading(false);
+    }
+  }, [handleAuthError]);
+  
+  // Upload profile image handler
+  const uploadProfileImage = useCallback(async (formData, onProgress) => {
+    try {
+      setLoading(true);
+      const result = await authService.uploadProfileImage(formData, onProgress);
+      
+      // Update user with new image URL
+      if (result.imageUrl) {
+        const updatedUser = { ...currentUser, profileImage: result.imageUrl };
+        setUser(updatedUser);
+        setCurrentUser(updatedUser);
+      }
+      
+      return result;
+    } catch (error) {
+      return handleAuthError(error);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser, handleAuthError]);
+  
+  // Email verification handler
+  const verifyEmail = useCallback(async (token) => {
+    try {
+      setLoading(true);
+      const result = await authService.verifyEmail(token);
+      
+      // Update user if provided in result
+      if (result.user) {
+        setUser(result.user);
+        setCurrentUser(result.user);
+        setIsAuthenticated(true);
+      }
+      
+      return result;
+    } catch (error) {
+      return handleAuthError(error);
+    } finally {
+      setLoading(false);
+    }
+  }, [handleAuthError]);
+  
+  // Resend verification email handler
+  const resendVerificationEmail = useCallback(async (data) => {
+    try {
+      setLoading(true);
+      return await authService.resendVerificationEmail(data);
+    } catch (error) {
+      return handleAuthError(error);
+    } finally {
+      setLoading(false);
+    }
+  }, [handleAuthError]);
 
   // Memoize context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => ({
@@ -163,7 +324,12 @@ export const AuthProvider = ({ children }) => {
     updateProfile,
     changePassword,
     forgotPassword,
-    resetPassword
+    resetPassword,
+    uploadProfileImage,
+    verifyEmail,
+    resendVerificationEmail,
+    isAdmin: currentUser?.role === 'admin',
+    isStaff: currentUser?.role === 'staff' || currentUser?.role === 'admin'
   }), [
     currentUser,
     isAuthenticated,
@@ -174,7 +340,10 @@ export const AuthProvider = ({ children }) => {
     updateProfile,
     changePassword,
     forgotPassword,
-    resetPassword
+    resetPassword,
+    uploadProfileImage,
+    verifyEmail,
+    resendVerificationEmail
   ]);
 
   return (
