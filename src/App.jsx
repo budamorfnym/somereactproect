@@ -1,21 +1,15 @@
+// src/App.jsx - оптимизированная версия
 import React, { useEffect, useState, Suspense } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import AppRoutes from './routes/AppRoutes';
 import { AuthProvider } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
-import { ServicesProvider } from './contexts/ServicesContext';
-import { BookingProvider } from './contexts/BookingContext';
-import { CarsProvider } from './contexts/CarsContext';
-import { LoyaltyProvider } from './contexts/LoyaltyContext';
-import { CompanyProvider } from './contexts/CompanyContext';
+import { DataProvider } from './contexts/DataContext'; // Новый объединенный контекст
 import Notification from './components/common/Notification';
 import LoadingSpinner from './components/common/LoadingSpinner';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import api from './config/api';
 
-/**
- * Main App component - sets up the application providers and initial data
- */
 function App() {
   const [companyInfo, setCompanyInfo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -48,12 +42,10 @@ function App() {
     fetchCompanyInfo();
   }, []);
 
-  // Show loading screen while fetching initial data
   if (loading) {
     return <LoadingSpinner fullscreen />;
   }
 
-  // Show error page if initial data fetch fails
   if (error) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
@@ -74,27 +66,19 @@ function App() {
   return (
     <ErrorBoundary>
       <Router>
-        <CompanyProvider initialData={companyInfo}>
-          <AuthProvider>
-            <NotificationProvider>
-              <ServicesProvider>
-                <CarsProvider>
-                  <BookingProvider>
-                    <LoyaltyProvider>
-                      {/* Notification component for displaying toast messages */}
-                      <Notification />
-                      
-                      {/* Main application routes */}
-                      <Suspense fallback={<LoadingSpinner fullscreen />}>
-                        <AppRoutes companyInfo={companyInfo} />
-                      </Suspense>
-                    </LoyaltyProvider>
-                  </BookingProvider>
-                </CarsProvider>
-              </ServicesProvider>
-            </NotificationProvider>
-          </AuthProvider>
-        </CompanyProvider>
+        <AuthProvider>
+          <NotificationProvider>
+            <DataProvider companyInfo={companyInfo}>
+              {/* Notification component for displaying toast messages */}
+              <Notification />
+              
+              {/* Main application routes */}
+              <Suspense fallback={<LoadingSpinner fullscreen />}>
+                <AppRoutes companyInfo={companyInfo} />
+              </Suspense>
+            </DataProvider>
+          </NotificationProvider>
+        </AuthProvider>
       </Router>
     </ErrorBoundary>
   );
