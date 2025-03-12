@@ -2,22 +2,22 @@ import { useContext } from 'react';
 import { BookingAndCarsContext } from '../contexts/BookingAndCarsContext';
 
 /**
- * Хук для доступа к объединенному контексту бронирований и автомобилей
- * @returns {Object} Объект с состоянием и методами для бронирований и автомобилей
+ * Hook for accessing the unified booking and cars context
+ * @returns {Object} Object with state and methods for bookings and cars
  */
 export const useBookingAndCars = () => {
   const context = useContext(BookingAndCarsContext);
   
   if (!context) {
-    throw new Error('useBookingAndCars должен использоваться внутри BookingAndCarsProvider');
+    throw new Error('useBookingAndCars must be used within BookingAndCarsProvider');
   }
   
   return context;
 };
 
 /**
- * Хук только для доступа к функциональности бронирований
- * Для обратной совместимости
+ * Hook for accessing only booking functionality
+ * For backward compatibility
  */
 export const useBooking = () => {
   const {
@@ -44,8 +44,8 @@ export const useBooking = () => {
 };
 
 /**
- * Хук только для доступа к функциональности автомобилей
- * Для обратной совместимости
+ * Hook for accessing only cars functionality
+ * For backward compatibility
  */
 export const useCars = () => {
   const {

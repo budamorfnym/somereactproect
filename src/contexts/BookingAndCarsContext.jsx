@@ -1,4 +1,4 @@
-import React, { createContext, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { bookingService } from '../services/bookingService';
 import { carsService } from '../services/carsService';
 import { useNotification } from '../hooks/useNotification';
@@ -18,6 +18,12 @@ export const BookingAndCarsProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   
   const { success, error } = useNotification();
+  
+  // Initial load of data when component mounts
+  useEffect(() => {
+    // Only load cars initially - bookings will be loaded on demand
+    loadUserCars();
+  }, []);
   
   // ======= Booking-related methods =======
   
@@ -151,6 +157,8 @@ export const BookingAndCarsProvider = ({ children }) => {
     try {
       setLoading(true);
       const newCar = await carsService.addCar(carData);
+      
+      // Update cars state with new car
       setCars(prevCars => [...prevCars, newCar]);
       
       // If this is the first car, set it as selected
@@ -174,6 +182,8 @@ export const BookingAndCarsProvider = ({ children }) => {
     try {
       setLoading(true);
       const updatedCar = await carsService.updateCar(carId, carData);
+      
+      // Update cars state with updated car
       setCars(prevCars => 
         prevCars.map(car => car.id === carId ? updatedCar : car)
       );
@@ -199,6 +209,8 @@ export const BookingAndCarsProvider = ({ children }) => {
     try {
       setLoading(true);
       await carsService.deleteCar(carId);
+      
+      // Update cars state by removing deleted car
       const updatedCars = cars.filter(car => car.id !== carId);
       setCars(updatedCars);
       
@@ -253,7 +265,6 @@ export const BookingAndCarsProvider = ({ children }) => {
     // Cars deps
     cars,
     selectedCar,
-    setSelectedCar,
     loadUserCars,
     getCarById,
     addCar,
